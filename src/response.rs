@@ -7,7 +7,7 @@
 // permissions and limitations relating to use of the SAFE Network Software.
 
 use crate::immutable_data::UnpubImmutableData;
-use crate::mutable_data::MutableData;
+use crate::mutable_data::UnsequencedMutableData;
 use crate::MessageId;
 
 /// RPC responses from vaults.
@@ -18,7 +18,7 @@ pub enum Response<ErrorType> {
     DeleteUnpubIData(Result<(), ErrorType>),
 
     GetUnseqMData {
-        res: Result<MutableData, ErrorType>,
+        res: Result<UnsequencedMutableData, ErrorType>,
         msg_id: MessageId,
     },
     PutUnseqMData {

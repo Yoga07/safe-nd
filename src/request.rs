@@ -7,7 +7,7 @@
 // permissions and limitations relating to use of the SAFE Network Software.
 
 use crate::immutable_data::UnpubImmutableData;
-use crate::mutable_data::{MutableData, MutableDataRef};
+use crate::mutable_data::{MutableDataRef, UnsequencedMutableData};
 use crate::MessageId;
 use crate::XorName;
 use threshold_crypto::PublicKey;
@@ -28,7 +28,7 @@ pub enum Request {
     },
     PutUnseqMData {
         // Mutable Data to be stored
-        data: MutableData,
+        data: UnsequencedMutableData,
         // Requester public key
         requester: PublicKey,
         // Unique message Identifier
