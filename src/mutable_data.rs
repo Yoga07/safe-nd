@@ -72,7 +72,7 @@ pub struct UnseqMutableData {
 /// Set of user permissions.
 #[derive(Clone, Debug, Eq, Hash, PartialEq, PartialOrd, Ord, Serialize, Deserialize, Default)]
 pub struct PermissionSet {
-    permissions: BTreeSet<Action>,
+    pub permissions: BTreeSet<Action>,
 }
 
 impl PermissionSet {
