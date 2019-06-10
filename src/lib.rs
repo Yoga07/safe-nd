@@ -57,6 +57,7 @@
 #![allow(missing_docs)]
 
 pub mod appendable_data;
+mod coins;
 mod errors;
 mod identity;
 mod immutable_data;
@@ -65,6 +66,7 @@ mod public_key;
 pub mod request;
 pub mod response;
 
+pub use coins::Coins;
 pub use errors::{EntryError, Error};
 pub use identity::{
     client::FullId as ClientFullId, client::PublicId as ClientPublicId, node::FullId as NodeFullId,
@@ -76,6 +78,12 @@ use serde::{Deserialize, Serialize};
 use std::fmt::{self, Debug, Display, Formatter};
 
 pub use sha3::Sha3_512 as Ed25519Digest;
+
+/// Permissions for an app stored by the Elders.
+#[derive(Hash, Eq, PartialEq, PartialOrd, Ord, Clone, Serialize, Deserialize, Default)]
+pub struct AppPermissions {
+    transfer_coins: bool,
+}
 
 /// Constant byte length of `XorName`.
 pub const XOR_NAME_LEN: usize = 32;
