@@ -20,20 +20,20 @@ pub enum User {
     Key(PublicKey),
 }
 
-pub fn check_permissions<P: Permissions>(
-    _data: impl AppendOnlyData<P>,
-    _rpc: &Request,
-    _requester: Requester,
-) -> Result<bool, Error> {
-    // TODO
-    Ok(true)
-}
-
 #[derive(Clone, Copy)]
 pub enum Action {
     Read,
     Append,
     ManagePermissions,
+}
+
+pub fn check_permissions<P: Permissions>(
+    _data: impl AppendOnlyData<P>,
+    _rpc: &Request,
+    _requester: Requester,
+) -> Result<bool, Error> {
+
+    Ok(true)
 }
 
 #[derive(Copy, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -85,6 +85,17 @@ pub struct AppendOnlyDataRef {
     tag: u64,
 }
 
+impl AppendOnlyDataRef {
+    pub fn name(&self) -> XorName {
+        self.name
+    }
+
+    pub fn tag(&self) -> u64 {
+        self.tag
+    }
+}
+
+
 #[derive(Copy, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum AppendOnlyKind {
     /// Published, sequenced append-only data
@@ -101,6 +112,7 @@ pub trait Permissions {
     fn is_action_allowed(&self, requester: PublicKey, action: Action) -> bool;
     fn data_index(&self) -> u64;
     fn owner_entry_index(&self) -> u64;
+    fn check_permission(&self, requester: Requester, action: Action) -> bool;
 }
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, PartialOrd, Ord, Eq, Hash)]
@@ -111,6 +123,12 @@ pub struct UnpubPermissions {
     /// The current index of the owners when this permission change happened
     owner_entry_index: u64,
 }
+
+//impl UnpubPermissions {
+//    pub fn list_permissions(&self) -> BTreeMap<PublicKey, UnpubPermissionSet> {
+//        self.permissions.clone()
+//    }
+//}
 
 impl Permissions for UnpubPermissions {
     fn is_action_allowed(&self, requester: PublicKey, action: Action) -> bool {
@@ -126,6 +144,26 @@ impl Permissions for UnpubPermissions {
 
     fn owner_entry_index(&self) -> u64 {
         self.owner_entry_index
+    }
+
+    fn check_permission(
+        &self,
+        requester: Requester,
+        action: Action,
+    ) -> bool {
+        let req= if let Requester::Key(key) = requester {
+            key
+        } else {
+            return false;
+        };
+        if self.permissions.contains_key(&req) {
+            match self.permissions.get(&req) {
+                Some(perm) => perm.is_allowed(action),
+                None => false,
+            }
+        } else {
+            false
+        }
     }
 }
 
@@ -163,6 +201,26 @@ impl Permissions for PubPermissions {
 
     fn owner_entry_index(&self) -> u64 {
         self.owner_entry_index
+    }
+
+    fn check_permission(
+        &self,
+        requester: Requester,
+        action: Action,
+    ) -> bool {
+        let req= if let Requester::Key(key) = requester {
+            key
+        } else {
+            return false;
+        };
+        if self.permissions.contains_key(&User::Key(req)) {
+            match self.permissions.get(&User::Key(req)) {
+                Some(perm) => perm.is_allowed(action).unwrap_or_else(||self.check_anyone_permissions(action)),
+                None => false,
+            }
+        } else {
+            false
+        }
     }
 }
 
@@ -226,6 +284,8 @@ pub trait AppendOnlyData<P> {
     /// Add a new permissions entry.
     /// The `Owners` struct should contain valid indexes.
     fn append_owners(&mut self, owners: Owners) -> Result<(), Error>;
+
+    fn verify_requester(&self, requester: Requester, action: Action) -> Result<bool, Error>;
 }
 
 /// Common methods for published and unpublished unsequenced `AppendOnlyData`.
@@ -405,6 +465,14 @@ macro_rules! impl_appendable_data {
                 }
                 self.inner.owners.push(owners);
                 Ok(())
+            }
+
+            fn verify_requester(&self, requester: Requester, action: Action) -> Result<bool, Error> {
+                if self.inner.permissions.last().unwrap().check_permission(requester, action) {
+                    Ok(true)
+                } else {
+                    Err(Error::AccessDenied)
+                }
             }
         }
     };

@@ -715,3 +715,110 @@ impl Into<BTreeMap<Vec<u8>, UnseqEntryAction>> for UnseqEntryActions {
         self.actions
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn mdata_permissions_test() {
+        let name = XorName(rand::random());
+        let tag = 15000;
+        let user1 = threshold_crypto::SecretKey::random().public_key();
+        let user2 = threshold_crypto::SecretKey::random().public_key();
+
+        let owner= threshold_crypto::SecretKey::random().public_key();
+
+        let mut unseq = UnseqMutableData::new_with_data(name, tag, BTreeMap::new(), BTreeMap::new(), owner);
+
+        let perm_set1 = PermissionSet::new().allow(Action::Insert).allow(Action::Read).allow(Action::Update).allow(Action::ManagePermissions);
+        // Denying permissions
+        let perm_set2 = PermissionSet::new().deny(Action::Insert);
+
+
+        let _x = unseq.permissions.insert(user1, perm_set1);
+        let _y = unseq.permissions.insert(user2, perm_set2);
+
+        // Retrieve PermissionSet for User1
+        let retreivedset1 = unseq.permissions.get(&user1).unwrap();
+
+        assert!(retreivedset1.is_allowed(Action::Insert));
+        assert!(retreivedset1.is_allowed(Action::Read));
+        assert!(retreivedset1.is_allowed(Action::Insert));
+
+        // Retrieve PermissionSet for User2
+        let retreivedset2 = unseq.permissions.get(&user2).unwrap();
+
+        assert!(!retreivedset2.is_allowed(Action::Insert));
+    }
+
+    #[test]
+    fn unseq_mdata_entry_actions_test() {
+        let name = XorName(rand::random());
+        let tag = 15000;
+        let owner= threshold_crypto::SecretKey::random().public_key();
+
+        let mut unseq = UnseqMutableData::new_with_data(name, tag, BTreeMap::new(), BTreeMap::new(), owner);
+
+
+        let user1 = threshold_crypto::SecretKey::random().public_key();
+        let _user2 = threshold_crypto::SecretKey::random().public_key();
+
+        let perm_set1 = PermissionSet::new().allow(Action::Insert).allow(Action::Read).allow(Action::Update).allow(Action::ManagePermissions).allow(Action::Delete);
+        let _ = unseq.permissions.insert(user1, perm_set1);
+        let mut unseq_actions = BTreeMap::<Vec<u8>,UnseqEntryAction>::new();
+
+        let _ = unseq_actions.insert(b"KEY1".to_vec(),UnseqEntryAction::Ins(b"VALUE1".to_vec()));
+        let _ = unseq_actions.insert(b"KEY2".to_vec(),UnseqEntryAction::Ins(b"VALUE2".to_vec()));
+        let _ = unseq_actions.insert(b"KEY3".to_vec(),UnseqEntryAction::Ins(b"VALUE3".to_vec()));
+
+        let _ = unseq.mutate_entries(unseq_actions,user1).unwrap();
+
+        let mut unseq_actions1 = BTreeMap::<Vec<u8>,UnseqEntryAction>::new();
+        let _ = unseq_actions1.insert(b"KEY1".to_vec(),UnseqEntryAction::Del);
+        let _ = unseq_actions1.insert(b"KEY2".to_vec(),UnseqEntryAction::Update(b"ABCD".to_vec()));
+
+        let _ = unseq.mutate_entries(unseq_actions1,user1).unwrap();
+
+        assert_eq!(unseq.entries().get(b"KEY1".to_vec().as_slice()),None);
+        assert_eq!(std::str::from_utf8(unseq.entries().get(b"KEY2".to_vec().as_slice()).unwrap()).unwrap(),"ABCD");
+        assert_eq!(std::str::from_utf8(unseq.entries().get(b"KEY3".to_vec().as_slice()).unwrap()).unwrap(),"VALUE3");
+    }
+
+    #[test]
+    fn seq_mdata_entry_actions_test() {
+        let name = XorName(rand::random());
+        let tag = 15000;
+        let owner= threshold_crypto::SecretKey::random().public_key();
+
+        let mut seq = SeqMutableData::new_with_data(name, tag, BTreeMap::new(), BTreeMap::new(), owner);
+
+        let user1 = threshold_crypto::SecretKey::random().public_key();
+        let _user2 = threshold_crypto::SecretKey::random().public_key();
+
+        let perm_set1 = PermissionSet::new().allow(Action::Insert).allow(Action::Read).allow(Action::Update).allow(Action::ManagePermissions).allow(Action::Delete);
+        let _ = seq.permissions.insert(user1, perm_set1);
+        let mut seq_actions = BTreeMap::<Vec<u8>,SeqEntryAction>::new();
+
+        let val1 = Value::new(b"VALUE1".to_vec(),0);
+        let val2 = Value::new(b"VALUE2".to_vec(),0);
+        let val3 = Value::new(b"VALUE3".to_vec(),0);
+
+        let _ = seq_actions.insert(b"KEY1".to_vec(),SeqEntryAction::Ins(val1));
+        let _ = seq_actions.insert(b"KEY2".to_vec(),SeqEntryAction::Ins(val2));
+        let _ = seq_actions.insert(b"KEY3".to_vec(),SeqEntryAction::Ins(val3));
+
+        let _ = seq.mutate_entries(seq_actions,user1).unwrap();
+
+        let mut seq_actions1 = BTreeMap::<Vec<u8>,SeqEntryAction>::new();
+        let _ = seq_actions1.insert(b"KEY1".to_vec(),SeqEntryAction::Del(1));
+        let val4 = Value::new(b"ABCD".to_vec(),1);
+        let _ = seq_actions1.insert(b"KEY2".to_vec(),SeqEntryAction::Update(val4));
+
+        let _ = seq.mutate_entries(seq_actions1,user1).unwrap();
+
+        assert_eq!(seq.entries().get(b"KEY1".to_vec().as_slice()),None);
+        assert_eq!(std::str::from_utf8(&seq.entries().get(b"KEY2".to_vec().as_slice()).unwrap().data).unwrap(),"ABCD");
+        assert_eq!(std::str::from_utf8(&seq.entries().get(b"KEY3".to_vec().as_slice()).unwrap().data).unwrap(),"VALUE3");
+    }
+}
