@@ -8,7 +8,7 @@
 // Software.
 
 use crate::appendable_data::{
-    self, AppendOnlyDataRef, AppendOnlyKind, Index, Owners, PubPermissions, UnpubPermissions, User,
+    self, AppendOnlyDataRef, AppendOnlyKind, Index, Owners, PubPermissions, UnpubPermissions, User, AppendOnlyData as AData
 };
 use crate::coins::Coins;
 use crate::immutable_data::UnpubImmutableData;
@@ -33,14 +33,33 @@ pub enum AppendOnlyData {
     UnpubUnseq(appendable_data::UnseqAppendOnlyData<UnpubPermissions>),
 }
 
+impl AppendOnlyData {
+    pub fn name(&self) -> XorName {
+        match self {
+            AppendOnlyData::PubSeq(data) => data.name(),
+            AppendOnlyData::PubUnseq(data) => data.name(),
+            AppendOnlyData::UnpubSeq(data) => data.name(),
+            AppendOnlyData::UnpubUnseq(data) => data.name(),
+        }
+    }
+
+    pub fn tag(&self) -> u64 {
+        match self {
+            AppendOnlyData::PubSeq(data) => data.tag(),
+            AppendOnlyData::PubUnseq(data) => data.tag(),
+            AppendOnlyData::UnpubSeq(data) => data.tag(),
+            AppendOnlyData::UnpubUnseq(data) => data.tag(),
+        }
+    }
+}
+
+
 #[derive(Clone, Serialize, Deserialize, PartialEq, PartialOrd, Ord, Eq, Hash)]
 pub struct AppendOperation {
     // Address of an AppendOnlyData object on the network.
-    address: AppendOnlyDataRef,
+    pub address: AppendOnlyDataRef,
     // A list of entries to append.
-    values: Vec<(Vec<u8>, Vec<u8>)>,
-    // Requester.
-    requester: Requester,
+    pub values: Vec<(Vec<u8>, Vec<u8>)>,
 }
 
 /// Wrapper message that contains the request, message ID, and the requester ID,
@@ -151,7 +170,7 @@ pub enum Request {
     },
 
     /// Get current indexes: data, owners, permissions.
-    GetADataIndexes {
+    GetADataIndices {
         kind: AppendOnlyKind,
         address: AppendOnlyDataRef,
     },
@@ -231,12 +250,16 @@ pub enum Request {
     AppendPublishedUnseq(AppendOperation),
     AppendUnpublishedUnseq(AppendOperation),
 
-    /// Put a new AppendOnlyData on the network.
+    /// Put a new AppendOnlyData into the network.
     PutAData {
         // AppendOnlyData to be stored
         data: AppendOnlyData,
     },
-
+    /// Get AppendOnlyData from the network.
+    GetAData {
+        // Address of AppendOnlyData to be retrieved
+        address: AppendOnlyDataRef,
+    },
     /// Get `AppendOnlyData` shell at a certain point
     /// in history (`index` refers to the list of data).
     GetADataShell {
@@ -244,14 +267,9 @@ pub enum Request {
         address: AppendOnlyDataRef,
         data_index: Index,
     },
-
     /// Delete an unpublished unsequenced `AppendOnlyData`.
     /// Only the current owner(s) can perform this action.
-    DeleteUnseqAData(AppendOnlyDataRef),
-    /// Delete an unpublished sequenced `AppendOnlyData`.
-    /// This operation MUST return an error if applied to published AppendOnlyData.
-    /// Only the current owner(s) can perform this action.
-    DeleteSeqAData(AppendOnlyDataRef),
+    DeleteAData(AppendOnlyDataRef),
 
     // -- Coins --
     /// Balance transfer
@@ -316,7 +334,7 @@ impl fmt::Debug for Request {
                 Request::DeleteMData { .. } => "Request::DeleteMData",
                 Request::GetADataRange { .. } => "Request::GetADataRange",
                 Request::GetADataLastEntry { .. } => "Request::GetADataLastEntry",
-                Request::GetADataIndexes { .. } => "Request::GetADataIndexes",
+                Request::GetADataIndices { .. } => "Request::GetADataIndexes",
                 Request::GetADataPermissions { .. } => "Request::GetADataPermissions",
                 Request::ListAuthKeysAndVersion { .. } => "Request::ListAuthKeysAndVersion",
                 Request::InsAuthKey { .. } => "Request::InsAuthKey",

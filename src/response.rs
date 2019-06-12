@@ -9,6 +9,8 @@
 
 use crate::coins::Coins;
 use crate::errors::Error;
+use crate::request::AppendOnlyData;
+use crate::appendable_data::{Indices,PubPermissionSet, UnpubPermissionSet, PubPermissions, UnpubPermissions};
 use crate::immutable_data::UnpubImmutableData;
 use crate::mutable_data::{SeqMutableData, UnseqMutableData, Value};
 use crate::{AppPermissions, MessageId};
@@ -44,6 +46,73 @@ pub enum Response {
         msg_id: MessageId,
     },
     DeleteUnpubIData {
+        res: Result<(), Error>,
+        msg_id: MessageId,
+    },
+    //
+    // ===== AppendOnly Data =====
+    //
+    PutAData {
+        res: Result<(),Error>,
+        msg_id: MessageId,
+    },
+    GetAData {
+        res: Result<AppendOnlyData,Error>,
+        msg_id: MessageId,
+    },
+    GetADataRange {
+        res: Result<Vec<(Vec<u8>,Vec<u8>)>,Error>,
+        msg_id: MessageId,
+    },
+    GetADataIndices {
+        res: Result<Indices, Error>,
+        msg_id: MessageId,
+    },
+    GetADataLastEntry {
+        res: Result<(Vec<u8>,Vec<u8>), Error>,
+        msg_id: MessageId,
+    },
+    GetUnpubADataPermissionAtIndex {
+        res: Result<UnpubPermissions, Error>,
+        msg_id: MessageId,
+    },
+    GetPubADataPermissionAtIndex {
+        res: Result<PubPermissions, Error>,
+        msg_id: MessageId,
+    },
+    GetPubADataUserPermissions {
+        res: Result<PubPermissionSet, Error>,
+        msg_id: MessageId,
+    },
+    GetUnpubADataUserPermissions {
+        res: Result<UnpubPermissionSet, Error>,
+        msg_id: MessageId,
+    },
+    AddUnpubADataPermissions {
+        res: Result<(), Error>,
+        msg_id: MessageId,
+    },
+    AddPubADataPermissions {
+        res: Result<(), Error>,
+        msg_id: MessageId,
+    },
+    AppendPublishedSeq{
+        res: Result<(), Error>,
+        msg_id: MessageId,
+    },
+    AppendUnpublishedSeq {
+        res: Result<(), Error>,
+        msg_id: MessageId,
+    },
+    AppendPublishedUnseq{
+        res: Result<(), Error>,
+        msg_id: MessageId,
+    },
+    AppendUnpublishedUnseq{
+        res: Result<(), Error>,
+        msg_id: MessageId,
+    },
+    DeleteAdata{
         res: Result<(), Error>,
         msg_id: MessageId,
     },
@@ -171,6 +240,22 @@ impl fmt::Debug for Response {
                 Response::ListAuthKeysAndVersion { .. } => "Response::ListAuthKeysAndVersion",
                 Response::InsAuthKey { .. } => "Response::InsAuthKey",
                 Response::DelAuthKey { .. } => "Response::DelAuthKey",
+                Response::PutAData { .. } => "Response::PutAData",
+                Response::GetAData{ .. } => "Response::GetAData",
+                Response::GetADataRange{ .. } => "Response::GetADataRange",
+                Response::GetADataIndices{ .. } => "Response::GetADataIndices",
+                Response::GetADataLastEntry{ .. } => "Response::GetADataLastEntry",
+                Response::GetUnpubADataPermissionAtIndex{ .. } => "Response::GetADataPermissionAtIndex",
+                Response::GetPubADataPermissionAtIndex{ .. } => "Response::GetADataPermissionAtIndex",
+                Response::GetPubADataUserPermissions{ .. } => "Response::GetPubADataUserPermissions",
+                Response::GetUnpubADataUserPermissions{ .. } => "Response::GetUnpubADataUserPermissions",
+                Response::AddUnpubADataPermissions{ .. } => "Response::AddUnpubADataPermissions",
+                Response::AddPubADataPermissions{ .. } => "Response::AddPubADataPermissions",
+                Response::AppendUnpublishedSeq{ .. } => "Response::AppendUnpublishedSeq",
+                Response::AppendPublishedUnseq{ .. } => "Response::AppendPublishedUnseq",
+                Response::AppendPublishedSeq{ .. } => "Response::AppendPublishedSeq",
+                Response::AppendUnpublishedUnseq{ .. } => "Response::AppendUnPublishedUnseq",
+                Response::DeleteAdata{ .. } => "Response::DeleteAdata",
             }
         )
     }
