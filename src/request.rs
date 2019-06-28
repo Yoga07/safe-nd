@@ -8,13 +8,14 @@
 // Software.
 
 use crate::{
-    AData, ADataAddress, ADataAppend, ADataIndex, ADataOwner, ADataPubPermissions,
-    ADataUnpubPermissions, ADataUser, AppPermissions, Coins, IDataAddress, IDataKind, MDataAddress,
-    MDataPermissionSet, MDataSeqEntryAction, MDataUnseqEntryAction, PublicKey, SeqMutableData,
-    UnseqMutableData, XorName,
+    AData, ADataAppend, ADataAddress, ADataIndex, ADataOwner, ADataPubPermissions,
+    ADataUnpubPermissions, ADataUser, AppPermissions,
+    Coins, IDataAddress, IDataKind, MDataAddress,
+    MDataPermissionSet, MDataSeqEntryActions, MDataUnseqEntryActions,
+    PublicKey, SeqMutableData, UnseqMutableData, XorName,
 };
 use serde::{Deserialize, Serialize};
-use std::{collections::BTreeMap, fmt};
+use std::fmt;
 
 /// RPC Request that is sent to vaults
 #[allow(clippy::large_enum_variant, missing_docs)]
@@ -60,11 +61,11 @@ pub enum Request {
     },
     MutateSeqMDataEntries {
         address: MDataAddress,
-        actions: BTreeMap<Vec<u8>, MDataSeqEntryAction>,
+        actions: MDataSeqEntryActions,
     },
     MutateUnseqMDataEntries {
         address: MDataAddress,
-        actions: BTreeMap<Vec<u8>, MDataUnseqEntryAction>,
+        actions: MDataUnseqEntryActions,
     },
     //
     // ===== Append Only Data =====
