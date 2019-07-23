@@ -315,6 +315,8 @@ pub trait AppendOnlyData<P> {
 
     /// Check if the requester is the last owner.
     fn check_is_last_owner(&self, requester: PublicKey) -> Result<()>;
+    // Check if the requester is an owner
+    fn check_is_owner(&self, requester: &PublicKey) -> Result<()>;
 }
 
 /// Common methods for published and unpublished unsequenced `AppendOnlyData`.
@@ -488,6 +490,19 @@ macro_rules! impl_appendable_data {
                 } else {
                     Err(Error::AccessDenied)
                 }
+            }
+            
+            fn check_is_owner(&self, requester: &PublicKey) -> Result<()> {
+                self.inner.owners.last().map_or_else(
+                    || Err(Error::InvalidOwners),
+                    |owner| {
+                        if owner.public_key == *requester {
+                            Ok(())
+                        } else {
+                            Err(Error::AccessDenied)
+                        }
+                    },
+                )
             }
         }
     };
@@ -890,6 +905,15 @@ impl Data {
             Data::PubUnseq(adata) => adata.shell(idx).map(Data::PubUnseq),
             Data::UnpubSeq(adata) => adata.shell(idx).map(Data::UnpubSeq),
             Data::UnpubUnseq(adata) => adata.shell(idx).map(Data::UnpubUnseq),
+        }
+    }
+
+    pub fn check_is_owner(&self, requester: &PublicKey) -> Result<()> {
+        match self {
+            Data::PubSeq(adata) => adata.check_is_owner(requester),
+            Data::PubUnseq(adata) => adata.check_is_owner(requester),
+            Data::UnpubSeq(adata) => adata.check_is_owner(requester),
+            Data::UnpubUnseq(adata) => adata.check_is_owner(requester),
         }
     }
 }
