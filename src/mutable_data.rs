@@ -777,7 +777,7 @@ pub enum UnseqEntryAction {
 /// Helper struct to build entry actions on `MutableData`
 #[derive(Hash, Eq, PartialEq, PartialOrd, Ord, Clone, Serialize, Deserialize, Debug, Default)]
 pub struct SeqEntryActions {
-    actions: BTreeMap<Vec<u8>, SeqEntryAction>,
+    pub actions: BTreeMap<Vec<u8>, SeqEntryAction>,
 }
 
 impl SeqEntryActions {
@@ -820,6 +820,12 @@ impl SeqEntryActions {
 impl Into<BTreeMap<Vec<u8>, SeqEntryAction>> for SeqEntryActions {
     fn into(self) -> BTreeMap<Vec<u8>, SeqEntryAction> {
         self.actions
+    }
+}
+
+impl From<BTreeMap<Vec<u8>, SeqEntryAction>> for SeqEntryActions {
+    fn from(actions: BTreeMap<Vec<u8>, SeqEntryAction>) -> Self {
+        SeqEntryActions { actions }
     }
 }
 
